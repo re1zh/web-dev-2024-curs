@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="card p-4">
+        <h4>Найти работу</h4>
+        <p>Нанять экспертов или быть нанятым</p>
+        <input type="text" class="form-control mb-3" placeholder="Ключевое слово">
+        <form>
+            <div class="mb-3">
+                <input type="text" class="form-control" placeholder="Место расположения">
+            </div>
+            <div class="mb-3">
+                <select class="form-select">
+                    <option selected>Все категории</option>
+                    <!-- Другие опции -->
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success my-3">Поиск</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
