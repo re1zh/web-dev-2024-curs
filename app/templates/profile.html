@@ -2,6 +2,7 @@
 
 {% block content %}
     <div class="container mt-5">
+        <h1>Профиль</h1>
         <table class="table table-bordered">
             <tbody>
                 <tr>
@@ -18,7 +19,7 @@
                 </tr>
                 <tr>
                     <td class="fw-bold">Отчество</td>
-                    <td> {{ user_data.second_name }} </td>
+                    <td> {{ user_data.second_name or '' }} </td>
                 </tr>
                 <tr>
                     <td class="fw-bold">Роль</td>
@@ -45,10 +46,10 @@
             {% if current_user.can('create_resume', current_user) %}
                 <button type="submit" class="btn btn-success my-3"><a class="text-decoration-none text-white" href="{{ url_for('create_resume', user_id=current_user.id) }}">Создать резюме</a></button>
             {% elif current_user.can('create_vacancie', current_user) %}
-                <button type="submit" class="btn btn-success my-3"><a class="text-decoration-none text-white" href="#">Создать вакансию</a></button>
+                <button type="submit" class="btn btn-success my-3"><a class="text-decoration-none text-white" href="{{ url_for('create_vacancie', user_id=current_user.id) }}">Создать вакансию</a></button>
             {% elif current_user.can('is_admin') %}
-                <button type="submit" class="btn btn-success my-3"><a class="text-decoration-none text-white" href="#">Создать резюме</a></button>
-                <button type="submit" class="btn btn-success my-3"><a class="text-decoration-none text-white" href="#">Создать вакансию</a></button>
+                <button type="submit" class="btn btn-success my-3"><a class="text-decoration-none text-white" href="{{ url_for('create_resume', user_id=current_user.id) }}">Создать резюме</a></button>
+                <button type="submit" class="btn btn-success my-3"><a class="text-decoration-none text-white" href="{{ url_for('create_vacancie', user_id=current_user.id) }}">Создать вакансию</a></button>
             {% endif %}
         </div>
     </div>

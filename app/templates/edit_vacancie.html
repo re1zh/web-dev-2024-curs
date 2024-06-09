@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Изменение данных вакансии</h1>
+    <form method="post">
+        <div class="mb-3">
+            <label for="title">Название</label>
+            <input class="form-control" id="title" aria-describedby="emailHelp" name="title" value="{{ vacancie_data.title or '' }}">
+        </div>
+        <div class="mb-3">
+            <label for="description">Описание работы</label>
+            <textarea type="text" class="form-control" id="description" name="description"> {{ vacancie_data.description }} </textarea>
+        </div>
+        <div class="mb-3">
+            <label for="salary">Зарплата</label>
+            <input class="form-control" id="salary" aria-describedby="emailHelp" name="salary" value="{{ vacancie_data.salary or '' }}">
+        </div>
+        <button type="submit" class="btn btn-success">Внести изменения</button>
+    </form>
+{% endblock %}

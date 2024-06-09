@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Создание вакансии</h1>
+    <form method="post">
+        <div class="mb-3">
+            <label for="title">Укажите название вакансии</label>
+            <input class="form-control" id="title" aria-describedby="emailHelp" name="title">
+        </div>
+        <div class="mb-3">
+            <label for="description">Опишите работу</label>
+            <textarea type="text" class="form-control" id="description" name="description"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="salary">Укажите зарплату</label>
+            <input class="form-control" id="salary" aria-describedby="emailHelp" name="salary">
+        </div>
+        <button type="submit" class="btn btn-success">Создать вакансию</button>
+    </form>
+{% endblock %}

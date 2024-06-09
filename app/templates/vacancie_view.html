@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="row">
+        <div class="card p-3 mx-2 my-2">
+            <h4 class="card-title"> {{ vacancie_data.title }} </h4>
+            <h6 class="card-subtitle mb-2 text-muted"> {{ vacancie_data.salary }}  ₽</h6>
+            <p class="card-text text-muted">{{ location_data.location }}</p>
+            <h6>Описание работы:</h6>
+            <p> {{ vacancie_data.description }} </p>
+            <p class="text-muted">Вакансия опубликована {{ vacancie_data.date }}</p>
+            {% if current_user.can('create_request', current_user) %}
+                <button type="submit" class="btn btn-success my-3 w-25"><a class="text-decoration-none text-white" href="#">Откликнуться</a></button>
+            {% endif %}
+            {% if current_user.can('update_vacancie', current_user) %}
+                <div class="d-flex" role="search">
+                    <button class="btn btn-success" type="submit"><a class="nav-link active" href="{{ url_for('edit_vacancie', user_id=current_user.id, vacancie_id=vacancie_data.id) }}">Редактировать</a></button>
+                    <button class="btn btn-danger mx-2" type="submit"><a class="nav-link active" href="{{ url_for('delete_vacancie', user_id=current_user.id, vacancie_id=vacancie_data.id) }}">Удалить</a></button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

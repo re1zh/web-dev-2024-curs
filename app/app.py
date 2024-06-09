@@ -234,16 +234,22 @@ def edit_profile(cursor, user_id):
                          "WHERE id = %(id)s")
                 cursor.execute(query, user_data)
 
-                if employer_data_check is True:
-                    query = (
-                        "INSERT INTO employers (id_user, company_name, description, location) VALUES "
-                        "(%(id_user)s, %(company_name)s, %(description)s, %(location)s)"
-                    )
-                else:
-                    query = (f"UPDATE employers SET {field_assignments_emp} "
-                             "WHERE id_user = %(id_user)s")
-                cursor.execute(query, employer_data)
+                try:
+                    if employer_data_check is True:
+                        query = (
+                            "INSERT INTO employers (id_user, company_name, description, location) VALUES "
+                            "(%(id_user)s, %(company_name)s, %(description)s, %(location)s)"
+                        )
+                    else:
+                        query = (f"UPDATE employers SET {field_assignments_emp} "
+                                 "WHERE id_user = %(id_user)s")
+                    cursor.execute(query, employer_data)
+                    flash('Запись добавлена в "Работодатели"', 'success')
+                except connector.errors.DatabaseError as error:
+                    flash(f'Произошла ошибка вставке записи: {error}', 'danger')
+
                 print(cursor.statement)
+
                 flash('Учетная запись успешно изменена', 'success')
                 return redirect(url_for('profile', user_id=user_id))
             except connector.errors.DatabaseError as error:
@@ -332,10 +338,216 @@ def resume(cursor, user_id):
     return render_template('resume.html',user_data=user_data, resume_data=resume_data)
 
 
-@app.route('/<int:user_id>/<int:resume_id>/edit_resume')
+@app.route('/<int:user_id>/<int:resume_id>/edit_resume', methods=['POST', 'GET'])
+@login_required
 @db_operation
-def resume(cursor, user_id):
-    pass
+def edit_resume(cursor, user_id, resume_id):
+    query = (
+        "SELECT resume.* "
+        "FROM resume "
+        "WHERE id_job_seeker = ( "
+        "   select job_seekers.id "
+        "       FROM job_seekers "
+        "       LEFT JOIN users "
+        "       ON users.id = job_seekers.id_user "
+        "       WHERE users.id = %s"
+        ") AND resume.id = %s "
+    )
+    cursor.execute(query, (user_id, resume_id))
+    resume_data = cursor.fetchone()
+
+    if resume_data is None:
+        flash('Резюме с такими данными нет в базе данных', 'danger')
+        return redirect(url_for('profile', user_id=user_id))
+
+    if request.method == 'POST':
+        fields_user = ['experience', 'description', 'skills', 'education']
+
+        resume_data = {field: request.form[field] or None for field in fields_user}
+        resume_data['id'] = resume_id
+
+        try:
+            field_assignments = ', '.join([f"{field} = %({field})s" for field in fields_user])
+
+            query = (f"UPDATE resume SET {field_assignments} "
+                     "WHERE id = %(id)s")
+            cursor.execute(query, resume_data)
+            print(cursor.statement)
+            flash('Данные резюме успешно изменены', 'success')
+            return redirect(url_for('resume', user_id=user_id))
+        except connector.errors.DatabaseError as error:
+            flash(f'Произошла ошибка при изменении записи: {error}', 'danger')
+    return render_template('edit_resume.html', resume_data=resume_data)
+
+
+@app.route('/<int:user_id>/<int:resume_id>/delete_resume', methods=['POST', 'GET', 'DELETE'])
+@login_required
+@db_operation
+def delete_resume(cursor, user_id, resume_id):
+    try:
+        query = ("DELETE FROM resume WHERE id = %s")
+        cursor.execute(query, (resume_id,))
+        flash('Резюме успешно удалено', 'success')
+        return redirect(url_for('resume', user_id=user_id))
+    except connector.errors.DatabaseError as error:
+        flash(f'Произошла ошибка при удалении записи: {error}', 'danger')
+
+
+@app.route('/<int:user_id>/create_vacancie', methods=['POST', 'GET'])
+@db_operation
+def create_vacancie(cursor, user_id):
+    if request.method == 'POST':
+        query = ("SELECT id FROM employers WHERE id_user = %s ")
+        cursor.execute(query, [user_id])
+        id_emp = cursor.fetchone()
+
+        query = (
+            "SELECT now() as date "
+        )
+        cursor.execute(query)
+        created_at = cursor.fetchone()
+
+        title = request.form['title']
+        description = request.form['description']
+        salary = request.form['salary']
+
+        vacancie_data = {
+            'title': title,
+            'description': description,
+            'salary': salary,
+            'id_employer': id_emp.id,
+            'date': created_at.date
+        }
+
+        try:
+            query = (
+                "INSERT INTO vacancy (id_employer, title, description, salary, date) VALUES "
+                "(%(id_employer)s, %(title)s, %(description)s, %(salary)s, %(date)s)"
+            )
+            cursor.execute(query, vacancie_data)
+            print(cursor.statement)
+
+            flash('Вакансия успешно создана', 'success')
+            return redirect(url_for('profile', user_id=user_id))
+        except connector.errors.DatabaseError as error:
+            flash(f'Произошла ошибка при создании записи: {error}', 'danger')
+    return render_template('create_vacancie.html')
+
+
+@app.route('/<int:user_id>/employer_vacancie_list')
+@db_operation
+def employer_vacancie_list(cursor, user_id):
+    query = (
+        "SELECT location FROM employers WHERE id_user = %s "
+    )
+    cursor.execute(query, [user_id])
+    location_data = cursor.fetchone()
+
+    query = (
+        "SELECT vacancy.* "
+        "FROM vacancy "
+        "WHERE id_employer = ("
+        "   select employers.id"
+        "   FROM employers "
+        "   LEFT JOIN users "
+        "   ON users.id = employers.id_user"
+        "   WHERE users.id = %s"
+        ")"
+    )
+    cursor.execute(query, [user_id])
+    vacancie_data = cursor.fetchall()
+
+    return render_template('employer_vacancie_list.html', vacancie_data=vacancie_data, location_data=location_data)
+
+
+@app.route('/<int:user_id>/<int:vacancie_id>/vacancie_view')
+@db_operation
+def vacancie_view(cursor, user_id, vacancie_id):
+    query = (
+        "SELECT location FROM employers WHERE id_user = %s "
+    )
+    cursor.execute(query, [user_id])
+    location_data = cursor.fetchone()
+
+    query = (
+        "SELECT * "
+        "FROM vacancy "
+        "WHERE id = %s"
+    )
+    cursor.execute(query, [vacancie_id])
+    vacancie_data = cursor.fetchone()
+
+    return render_template('vacancie_view.html', vacancie_data=vacancie_data, location_data=location_data)
+
+
+@app.route('/<int:user_id>/<int:vacancie_id>/edit_vacancie', methods=['POST', 'GET'])
+@login_required
+@db_operation
+def edit_vacancie(cursor, user_id, vacancie_id):
+    query = (
+        "SELECT vacancy.* "
+        "FROM vacancy "
+        "WHERE id_employer = ( "
+        "select employers.id"
+        "   FROM employers "
+        "   LEFT JOIN users "
+        "   ON users.id = employers.id_user "
+        "   WHERE users.id = %s"
+        ") "
+    )
+    cursor.execute(query, [user_id])
+    vacancie_data = cursor.fetchone()
+
+    if vacancie_data is None:
+        flash('Вакансии с такими данными нет в базе данных', 'danger')
+        return redirect(url_for('profile', user_id=user_id))
+
+    if request.method == 'POST':
+        fields_user = ['title', 'description', 'salary']
+
+        vacancie_data = {field: request.form[field] or None for field in fields_user}
+        vacancie_data['id'] = vacancie_id
+
+        try:
+            field_assignments = ', '.join([f"{field} = %({field})s" for field in fields_user])
+
+            query = (f"UPDATE vacancy SET {field_assignments} "
+                     "WHERE id = %(id)s")
+            cursor.execute(query, vacancie_data)
+            print(cursor.statement)
+            flash('Данные вакансии успешно изменены', 'success')
+            return redirect(url_for('vacancie_view', user_id=user_id, vacancie_id=vacancie_id))
+        except connector.errors.DatabaseError as error:
+            flash(f'Произошла ошибка при изменении записи: {error}', 'danger')
+    return render_template('edit_vacancie.html', vacancie_data=vacancie_data)
+
+
+@app.route('/<int:user_id>/<int:vacancie_id>/delete_vacancie', methods=['POST', 'GET', 'DELETE'])
+@login_required
+@db_operation
+def delete_vacancie(cursor, user_id, vacancie_id):
+    try:
+        query = ("DELETE FROM vacancy WHERE id = %s")
+        cursor.execute(query, (vacancie_id,))
+        flash('Вакансия успешно удалена', 'success')
+        return redirect(url_for('employer_vacancie_list', user_id=user_id))
+    except connector.errors.DatabaseError as error:
+        flash(f'Произошла ошибка при удалении записи: {error}', 'danger')
+
+
+@app.route('/vacancie_list')
+@db_operation
+def vacancie_list(cursor):
+    query = (
+        "SELECT vacancy.*, employers.location "
+        "FROM vacancy "
+        "LEFT JOIN employers "
+        "ON vacancy.id_employer = employers.id"
+    )
+    cursor.execute(query)
+    vacancie_data = cursor.fetchall()
+
+    return render_template('vacancie_list.html', vacancie_data=vacancie_data)
 
 
 if __name__ == '__main__':

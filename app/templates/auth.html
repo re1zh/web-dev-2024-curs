@@ -1,20 +1,21 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<form method="post">
-    <div class="mb-3">
-        <label for="login">Введите логин</label>
-        <input class="form-control" id="login" aria-describedby="emailHelp" placeholder="Логин" name="username">
-    </div>
-    <div class="mb-3">
-        <label for="password">Введите пароль</label>
-        <input type="password" class="form-control" id="password" placeholder="Пароль" name="password">
-    </div>
-    <div class="mb-3 form-check">
-        <input type="checkbox" class="form-check-input" id="checkme" name="remember_me">
-        <label class="form-check-label" for="checkme">Запомнить меня</label>
-    </div>
-    <button type="submit" class="btn btn-success">Войти</button>
+    <h1>Авторизация</h1>
+    <form method="post">
+        <div class="mb-3">
+            <label for="login">Введите логин</label>
+            <input class="form-control" id="login" aria-describedby="emailHelp" placeholder="Логин" name="username">
+        </div>
+        <div class="mb-3">
+            <label for="password">Введите пароль</label>
+            <input type="password" class="form-control" id="password" placeholder="Пароль" name="password">
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="checkme" name="remember_me">
+            <label class="form-check-label" for="checkme">Запомнить меня</label>
+        </div>
+        <button type="submit" class="btn btn-success">Войти</button>
   </form>
 {% if error %}
     <span>{{ error }}</span>

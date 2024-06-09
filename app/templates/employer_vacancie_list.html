@@ -2,13 +2,13 @@
 
 {% block content %}
     <div class="row">
-        <h4 class="mx-2">Список вакансий</h4>
+        <h4 class="mx-2">Список опубликованных вами вакансий</h4>
         {% for vacancie in vacancie_data %}
             <div class="col-12 col-md-6">
                 <div class="card p-3 mx-2 my-2">
                     <h5 class="card-title"> {{ vacancie.title }} </h5>
                     <h6 class="card-subtitle mb-2 text-muted"> {{ vacancie.salary }}  ₽</h6>
-                    <p class="card-text text-muted"> {{ vacancie.location }} </p>
+                    <p class="card-text text-muted"> {{ location_data.location }} </p>
                     <button type="submit" class="btn btn-success"><a class="text-decoration-none text-white" href="{{ url_for('vacancie_view', user_id=current_user.id, vacancie_id=vacancie.id) }}">Подробнее</a></button>
                 </div>
             </div>
