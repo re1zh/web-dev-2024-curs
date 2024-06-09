@@ -18,7 +18,7 @@
             <input class="form-control" id="secondname" aria-describedby="emailHelp" placeholder="Иванович" name="second_name"
                  value="{{ user_data.second_name or '' }}">
         </div>
-        {% if current_user.can('update_profile_employer', current_user) %}
+        {% if current_user.can('update_profile_employer', current_user.id) or current_user.can('is_admin') %}
             <div class="mb-3">
                 <label for="company_name">Название компании</label>
                 <input class="form-control" id="company_name" aria-describedby="emailHelp" placeholder="Название компании" name="company_name"

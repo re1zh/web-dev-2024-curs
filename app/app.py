@@ -62,23 +62,6 @@ def db_operation(func):
     return wrapper
 
 
-def check_for_privelege(action):
-    def decorator(function):
-        @wraps(function)
-        def wrapper(*args, **kwargs):
-            user = None
-            if 'user_id' in kwargs.keys():
-                with db_connector.connect().cursor(named_tuple=True) as cursor:
-                    cursor.execute("SELECT * FROM users WHERE id = %s;", (kwargs.get('user_id'),))
-                    user = cursor.fetchone()
-            if not (current_user.is_authenticated and current_user.can(action, user)):
-                flash('Недостаточно прав для доступа к этой странице', 'warning')
-                return redirect(url_for('index'))
-            return function(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -132,6 +115,7 @@ def create_profile(cursor):
         secondname = request.form['secondname']
         role = request.form['role']
 
+        id_role = 0
         if role == 'Работодатель':
             id_role = 2
         elif role == 'Соискатель':
@@ -156,9 +140,27 @@ def create_profile(cursor):
             cursor.execute(query, user_data)
             print(cursor.statement)
             flash('Учетная запись успешно создана', 'success')
+
+            if id_role == 3:
+                try:
+                    query = "SELECT id FROM users WHERE login = %s and password = SHA2(%s, 256)"
+                    cursor.execute(query, (login, password))
+                    js_id = cursor.fetchone()
+                    print(cursor.statement)
+                    print(js_id.id)
+
+                    query = (
+                        "INSERT INTO job_seekers (id_user) VALUES "
+                        "(%s)"
+                    )
+                    cursor.execute(query, [js_id.id])
+                    print(cursor.statement)
+                    flash('Запись добавлена в "Соискатели"', 'success')
+                except connector.errors.DatabaseError as error:
+                    flash(f'Произошла ошибка при создании записи: {error}','danger')
             return redirect(url_for('auth'))
-        except connector.errors.DatabaseError:
-            flash('Произошла ошибка при создании записи. Проверьте, что все необходимые поля заполнены', 'danger')
+        except connector.errors.DatabaseError as error:
+            flash(f'Произошла ошибка при создании записи: {error}', 'danger')
 
     return render_template('create_profile.html')
 
@@ -205,7 +207,9 @@ def edit_profile(cursor, user_id):
     cursor.execute(query, [user_id])
     employer_data = cursor.fetchone()
 
-    print(employer_data)
+    employer_data_check = False
+    if employer_data is None:
+        employer_data_check = True
 
     if user_data is None:
         flash('Пользователя нет в базе данных', 'danger')
@@ -230,16 +234,16 @@ def edit_profile(cursor, user_id):
                          "WHERE id = %(id)s")
                 cursor.execute(query, user_data)
 
-                if employer_data is None:
+                if employer_data_check is True:
                     query = (
-                        "INSERT INTO employers (id_user, {fields assignments_emp}) VALUES "
+                        "INSERT INTO employers (id_user, company_name, description, location) VALUES "
                         "(%(id_user)s, %(company_name)s, %(description)s, %(location)s)"
                     )
                 else:
                     query = (f"UPDATE employers SET {field_assignments_emp} "
                              "WHERE id_user = %(id_user)s")
                 cursor.execute(query, employer_data)
-
+                print(cursor.statement)
                 flash('Учетная запись успешно изменена', 'success')
                 return redirect(url_for('profile', user_id=user_id))
             except connector.errors.DatabaseError as error:
@@ -261,6 +265,77 @@ def edit_profile(cursor, user_id):
             except connector.errors.DatabaseError as error:
                 flash(f'Произошла ошибка при изменении записи: {error}', 'danger')
     return render_template('edit_profile.html', user_data=user_data, employer_data=employer_data)
+
+
+@app.route('/<int:user_id>/create_resume', methods=['POST', 'GET'])
+@db_operation
+def create_resume(cursor, user_id):
+    if request.method == 'POST':
+        query = ("SELECT id FROM job_seekers WHERE id_user = %s")
+        cursor.execute(query, [user_id])
+        id_js = cursor.fetchone()
+
+        query = (
+            "SELECT now() as date "
+        )
+        cursor.execute(query)
+        created_at = cursor.fetchone()
+
+        experience = request.form['experience']
+        description = request.form['description']
+        skills = request.form['skills']
+        education = request.form['education']
+        user_data = {
+            'experience': experience,
+            'description': description,
+            'skills': skills,
+            'education': education,
+            'id_job_seeker': id_js.id,
+            'date': created_at.date
+        }
+
+        try:
+            query = (
+                "INSERT INTO resume (id_job_seeker, experience, description, skills, education, date) VALUES "
+                "(%(id_job_seeker)s, %(experience)s, %(description)s, %(skills)s, %(education)s, %(date)s)"
+            )
+            cursor.execute(query, user_data)
+            print(cursor.statement)
+            flash('Резюме успешно создано', 'success')
+            return redirect(url_for('profile', user_id=user_id))
+        except connector.errors.DatabaseError as error:
+            flash(f'Произошла ошибка при создании записи: {error}', 'danger')
+    return render_template('create_resume.html')
+
+
+@app.route('/<int:user_id>/resume')
+@db_operation
+def resume(cursor, user_id):
+    query = ("SELECT last_name, first_name, second_name FROM users WHERE id = %s ")
+    cursor.execute(query, [user_id])
+    user_data = cursor.fetchone()
+
+    query = (
+        "SELECT resume.* "
+        "FROM resume "
+        "WHERE id_job_seeker = ( "
+        "select job_seekers.id"
+        "   FROM job_seekers "
+        "   LEFT JOIN std_2411_findaworkk.users "
+        "   ON users.id = job_seekers.id_user "
+        "    WHERE users.id = %s"
+        ") "
+    )
+    cursor.execute(query, [user_id])
+    resume_data = cursor.fetchall()
+
+    return render_template('resume.html',user_data=user_data, resume_data=resume_data)
+
+
+@app.route('/<int:user_id>/<int:resume_id>/edit_resume')
+@db_operation
+def resume(cursor, user_id):
+    pass
 
 
 if __name__ == '__main__':

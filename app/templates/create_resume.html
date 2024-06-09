@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <form method="post">
+        <div class="mb-3">
+            <label for="experience">Ваш опыт работы</label>
+            <textarea type="text" class="form-control" id="experience" name="experience"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="description">Расскажите о себе</label>
+            <textarea type="text" class="form-control" id="description" name="description"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="skills">Ваши навыки</label>
+            <textarea type="text" class="form-control" id="skills" name="skills"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="education">Ваше образование</label>
+            <textarea type="text" class="form-control" id="education" name="education"></textarea>
+        </div>
+        <button type="submit" class="btn btn-success">Создать резюме</button>
+    </form>
+{% endblock %}

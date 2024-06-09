@@ -33,14 +33,28 @@
                         <li class="nav-item">
                             <a class="nav-link active" href="{{ url_for('about') }}">О проекте</a>
                         </li>
-                        {% if current_user.is_authenticated %}
+                        {% if current_user.is_authenticated and current_user.can('is_admin') %}
                             <li class="nav-item">
                                 <a class="nav-link active" href="#">Список вакансий</a>
                             </li>
-                        {% endif %}
-                        {% if current_user.is_authenticated and current_user.can('read_statistics', current_user) %}
                             <li class="nav-item">
                                 <a class="nav-link active" href="#">Статистика</a>
+                            </li>
+                        {% endif %}
+                        {% if current_user.is_authenticated and current_user.can('create_resume') %}
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#">Список вакансий</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="{{ url_for('resume', user_id=current_user.id) }}">Ваши резюме</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#">Ваши отклики</a>
+                            </li>
+                        {% endif %}
+                        {% if current_user.is_authenticated and current_user.can('create_vacancie') %}
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#">Опубликованные вами вакансии</a>
                             </li>
                         {% endif %}
                     </ul>
