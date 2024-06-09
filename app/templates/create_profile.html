@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <form method="post">
+        <div class="mb-3">
+            <label for="login">Введите логин</label>
+            <input class="form-control" id="login" aria-describedby="emailHelp" placeholder="Логин" name="login">
+        </div>
+        <div class="mb-3">
+            <label for="lastname">Введите фамилию</label>
+            <input class="form-control" id="lastname" aria-describedby="emailHelp" placeholder="Иванов" name="lastname">
+        </div>
+        <div class="mb-3">
+            <label for="name">Введите имя</label>
+            <input class="form-control" id="name" aria-describedby="emailHelp" placeholder="Иван" name="name">
+        </div>
+        <div class="mb-3">
+            <label for="secondname">Введите отчество</label>
+            <input class="form-control" id="secondname" aria-describedby="emailHelp" placeholder="Иванович" name="secondname">
+        </div>
+        <div class="mb-3">
+            <label for="password">Введите пароль</label>
+            <input type="password" class="form-control" id="password" placeholder="Пароль" name="password">
+        </div>
+        <div class="mb-3">
+            <label for="role">Кем являетесь?</label>
+            <input class="form-control" id="role" aria-describedby="emailHelp" placeholder="Работодатель/Соискатель" name="role">
+        </div>
+        <button type="submit" class="btn btn-success">Создать учетную запись</button>
+    </form>
+{% endblock %}

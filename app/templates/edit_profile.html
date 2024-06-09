@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Изменение данных профиля</h1>
+    <form method="post">
+        <div class="mb-3">
+            <label for="lastname">Фамилия</label>
+            <input class="form-control" id="lastname" aria-describedby="emailHelp" placeholder="Иванов" name="last_name"
+                value="{{ user_data.last_name or '' }}">
+        </div>
+        <div class="mb-3">
+            <label for="name">Имя</label>
+            <input class="form-control" id="name" aria-describedby="emailHelp" placeholder="Иван" name="first_name"
+                value="{{ user_data.first_name or '' }}">
+        </div>
+        <div class="mb-3">
+            <label for="secondname">Отчество</label>
+            <input class="form-control" id="secondname" aria-describedby="emailHelp" placeholder="Иванович" name="second_name"
+                 value="{{ user_data.second_name or '' }}">
+        </div>
+        {% if current_user.can('update_profile_employer', current_user) %}
+            <div class="mb-3">
+                <label for="company_name">Название компании</label>
+                <input class="form-control" id="company_name" aria-describedby="emailHelp" placeholder="Название компании" name="company_name"
+                    value="{{ employer_data.company_name or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="description">Описание</label>
+                <textarea type="text" class="form-control" id="description" name="description">{{ employer_data.description or '' }}</textarea>
+            </div>
+            <div class="mb-3">
+                <label for="location">Местоположение</label>
+                <textarea type="text" class="form-control" id="location" name="location">{{ employer_data.location or '' }}</textarea>
+            </div>
+        {% endif %}
+        <button type="submit" class="btn btn-success">Внести изменения</button>
+    </form>
+{% endblock %}

@@ -1,23 +1,16 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row">
-    <div class="card p-4">
-        <h4>Найти работу</h4>
+    <div class="d-flex-column text-center my-5 justify-content-center">
+        <h4>Findaworkk - найди работу!</h4>
         <p>Нанять экспертов или быть нанятым</p>
-        <input type="text" class="form-control mb-3" placeholder="Ключевое слово">
-        <form>
-            <div class="mb-3">
-                <input type="text" class="form-control" placeholder="Место расположения">
-            </div>
-            <div class="mb-3">
-                <select class="form-select">
-                    <option selected>Все категории</option>
-                    <!-- Другие опции -->
-                </select>
-            </div>
-            <button type="submit" class="btn btn-success my-3">Поиск</button>
-        </form>
+        <a  {% if current_user.is_authenticated %}
+                href="#"
+            {% else %}
+                href="{{url_for('auth')}}"
+            {% endif %}
+        >
+            <button type="submit" class="btn btn-success my-3 w-25 text-center">Приступить</button>
+        </a>
     </div>
-</div>
 {% endblock %}

@@ -21,7 +21,7 @@
     <header>
         <nav class="navbar navbar-expand-lg bg-body-tertiary">
             <div class="container-fluid">
-                <a class="navbar-brand fs-4" href="{{ url_for('index') }}">Findaworkk</a>
+                <a class="navbar-brand fs-4" href="#">Findaworkk</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarScroll" aria-controls="navbarScroll" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -33,24 +33,13 @@
                         <li class="nav-item">
                             <a class="nav-link active" href="{{ url_for('about') }}">О проекте</a>
                         </li>
-                        {% if current_user.is_authenticated %}
-                            <li class="nav-item">
-                                <a class="nav-link active" href="#">Список вакансий</a>
-                            </li>
-                        {% endif %}
-                        {% if current_user.is_authenticated and current_user.can('read_statistics', current_user) %}
-                            <li class="nav-item">
-                                <a class="nav-link active" href="#">Статистика</a>
-                            </li>
-                        {% endif %}
                     </ul>
                     <div class="d-flex" role="search">
-                    {% if current_user.is_authenticated and current_user.can('view_profile', current_user)%}
+                    {% if current_user.is_authenticated %}
                         <button class="btn btn-outline-success" type="submit"><a class="nav-link active" href="{{ url_for('logout') }}">Выход</a></button>
-                        <button class="btn btn-outline-success mx-2" type="submit"><a class="nav-link active" href="{{ url_for('profile', user_id=current_user.id) }}">Профиль</a></button>
                     {% else %}
                         <button class="btn btn-outline-success" type="submit"><a class="nav-link active" href="{{ url_for('auth') }}">Вход</a></button>
-                        <button class="btn btn-outline-success mx-2" type="submit"><a class="nav-link active" href="{{ url_for('create_profile') }}">Создать учетную запись</a></button>
+                        <button class="btn btn-outline-success mx-2" type="submit"><a class="nav-link active" href="{{ url_for('registr') }}">Регистрация</a></button>
                     {% endif %}
                     </div>
                 </div>
@@ -65,9 +54,7 @@
         </div>
             {% endfor %}
         </div>
-
         {% block content %}
-
         {% endblock %}
     </main>
 
@@ -80,8 +67,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-        crossorigin="anonymous">
-    </script>
+        crossorigin="anonymous"></script>
 </body>
 <script>
     setTimeout(() => {
@@ -89,6 +75,6 @@
             .forEach(function (alert) {
                 alert.remove();
             });
-    }, 5000);
+    }, 3000);
 </script>
 </html>

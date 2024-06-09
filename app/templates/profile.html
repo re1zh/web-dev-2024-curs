@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <table class="table table-bordered">
+            <tbody>
+                <tr>
+                    <td class="fw-bold">Логин</td>
+                    <td> {{ user_data.login }} </td>
+                </tr>
+                <tr>
+                    <td class="fw-bold">Имя</td>
+                    <td> {{ user_data.first_name }} </td>
+                </tr>
+                <tr>
+                    <td class="fw-bold">Фамилия</td>
+                    <td> {{ user_data.last_name }} </td>
+                </tr>
+                <tr>
+                    <td class="fw-bold">Отчество</td>
+                    <td> {{ user_data.second_name }} </td>
+                </tr>
+                <tr>
+                    <td class="fw-bold">Роль</td>
+                    <td class="password"> {{ user_role }} </td>
+                </tr>
+                {% if current_user.can('update_profile_employer', current_user) %}
+                    <tr>
+                        <td class="fw-bold">Компания</td>
+                        <td> {{ employer_data.company_name }} </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Описание</td>
+                        <td> {{ employer_data.description }} </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Местоположение</td>
+                        <td> {{ employer_data.location }} </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+        <div class="container mt-3">
+            <button type="submit" class="btn btn-success my-3"><a class="text-decoration-none text-white" href="{{ url_for('edit_profile', user_id=current_user.id) }}">Изменить данные</a></button>
+            {% if current_user.can('create_resume', current_user) %}
+                <button type="submit" class="btn btn-success my-3"><a class="text-decoration-none text-white" href="#">Создать резюме</a></button>
+            {% elif current_user.can('create_vacancie', current_user) %}
+                <button type="submit" class="btn btn-success my-3"><a class="text-decoration-none text-white" href="#">Создать вакансию</a></button>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
