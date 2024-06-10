@@ -1,10 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
 
-</body>
-</html>
+{% block content %}
+    <div class="container mt-5">
+        <h2>Статистика</h2>
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th scope="col">Кол-во пользователей в системе</th>
+                    <th scope="col">Кол-во вакансий</th>
+                    <th scope="col">Кол-во соискателей</th>
+                    <th scope="col">Кол-во работодателей</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td> {{ stats.usrs }} </td>
+                    <td> {{ stats.vacs }} </td>
+                    <td> {{ stats.js }} </td>
+                    <td> {{ stats.emps }} </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
