@@ -10,7 +10,7 @@
             <p> {{ vacancie_data.description }} </p>
             <p class="text-muted">Вакансия опубликована {{ vacancie_data.date }}</p>
             {% if current_user.can('create_request', current_user) %}
-                <button type="submit" class="btn btn-success my-3 w-25"><a class="text-decoration-none text-white" href="#">Откликнуться</a></button>
+                <button type="submit" class="btn btn-success my-3 w-25"><a class="text-decoration-none text-white" href="{{ url_for('create_request', user_id=current_user.id, vacancie_id=vacancie_data.id) }}">Откликнуться</a></button>
             {% endif %}
             {% if current_user.can('update_vacancie', current_user) %}
                 <div class="d-flex" role="search">

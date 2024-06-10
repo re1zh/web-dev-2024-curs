@@ -1,9 +1,9 @@
 import datetime
-import re
+from io import BytesIO
 from functools import wraps
 
 import mysql.connector as connector
-from flask import Flask, render_template, session, request, redirect, url_for, flash, current_app
+from flask import Flask, render_template, session, request, redirect, url_for, flash, current_app, send_file
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 
 from mysqldb import DBConnector
@@ -58,13 +58,33 @@ def db_operation(func):
             print(f"Duration {func}: {end_time - start_time}")
             # connection.close()
         return result
-
     return wrapper
+
+
+@db_operation
+def get_date(cursor):
+    query = (
+        "SELECT now() as date "
+    )
+    cursor.execute(query)
+    date = cursor.fetchone()
+    return date
+
+
+@db_operation
+def get_status(cursor):
+    query = (
+        "SELECT * FROM status "
+    )
+    cursor.execute(query)
+    statuses = cursor.fetchall()
+    return statuses
 
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/about')
 def about():
@@ -281,11 +301,7 @@ def create_resume(cursor, user_id):
         cursor.execute(query, [user_id])
         id_js = cursor.fetchone()
 
-        query = (
-            "SELECT now() as date "
-        )
-        cursor.execute(query)
-        created_at = cursor.fetchone()
+        created_at = get_date()
 
         experience = request.form['experience']
         description = request.form['description']
@@ -300,17 +316,36 @@ def create_resume(cursor, user_id):
             'date': created_at.date
         }
 
-        try:
-            query = (
-                "INSERT INTO resume (id_job_seeker, experience, description, skills, education, date) VALUES "
-                "(%(id_job_seeker)s, %(experience)s, %(description)s, %(skills)s, %(education)s, %(date)s)"
-            )
-            cursor.execute(query, user_data)
-            print(cursor.statement)
-            flash('Резюме успешно создано', 'success')
-            return redirect(url_for('profile', user_id=user_id))
-        except connector.errors.DatabaseError as error:
-            flash(f'Произошла ошибка при создании записи: {error}', 'danger')
+        query = (
+            f"""
+                select count(*) qty
+                from resume
+                where id_job_seeker = (
+                    select job_seekers.id
+                    from job_seekers
+                    left join users
+                    on job_seekers.id_user = users.id
+                    where users.id = %s
+                )
+            """
+        )
+        cursor.execute(query, [user_id])
+        resume_qty = cursor.fetchone()
+
+        if resume_qty.qty <= 1:
+            try:
+                query = (
+                    "INSERT INTO resume (id_job_seeker, experience, description, skills, education, date) VALUES "
+                    "(%(id_job_seeker)s, %(experience)s, %(description)s, %(skills)s, %(education)s, %(date)s)"
+                )
+                cursor.execute(query, user_data)
+                print(cursor.statement)
+                flash('Резюме успешно создано', 'success')
+                return redirect(url_for('profile', user_id=user_id))
+            except connector.errors.DatabaseError as error:
+                flash(f'Произошла ошибка при создании записи: {error}', 'danger')
+        else:
+            flash(f'Нельзя создавать больше одного резюме', 'danger')
     return render_template('create_resume.html')
 
 
@@ -325,15 +360,19 @@ def resume(cursor, user_id):
         "SELECT resume.* "
         "FROM resume "
         "WHERE id_job_seeker = ( "
-        "select job_seekers.id"
+        "   select job_seekers.id"
         "   FROM job_seekers "
-        "   LEFT JOIN std_2411_findaworkk.users "
+        "   LEFT JOIN users "
         "   ON users.id = job_seekers.id_user "
-        "    WHERE users.id = %s"
-        ") "
+        "   WHERE users.id = %s"
+        ")"
     )
     cursor.execute(query, [user_id])
-    resume_data = cursor.fetchall()
+    resume_data = cursor.fetchone()
+
+    if resume_data is None:
+        flash('Вы еще не создали резюме', 'danger')
+        return redirect(url_for('profile', user_id=user_id))
 
     return render_template('resume.html',user_data=user_data, resume_data=resume_data)
 
@@ -377,7 +416,7 @@ def edit_resume(cursor, user_id, resume_id):
             return redirect(url_for('resume', user_id=user_id))
         except connector.errors.DatabaseError as error:
             flash(f'Произошла ошибка при изменении записи: {error}', 'danger')
-    return render_template('edit_resume.html', resume_data=resume_data)
+    return render_template('resume.html', resume_data=resume_data)
 
 
 @app.route('/<int:user_id>/<int:resume_id>/delete_resume', methods=['POST', 'GET', 'DELETE'])
@@ -388,7 +427,7 @@ def delete_resume(cursor, user_id, resume_id):
         query = ("DELETE FROM resume WHERE id = %s")
         cursor.execute(query, (resume_id,))
         flash('Резюме успешно удалено', 'success')
-        return redirect(url_for('resume', user_id=user_id))
+        return redirect(url_for('profile', user_id=user_id))
     except connector.errors.DatabaseError as error:
         flash(f'Произошла ошибка при удалении записи: {error}', 'danger')
 
@@ -401,11 +440,7 @@ def create_vacancie(cursor, user_id):
         cursor.execute(query, [user_id])
         id_emp = cursor.fetchone()
 
-        query = (
-            "SELECT now() as date "
-        )
-        cursor.execute(query)
-        created_at = cursor.fetchone()
+        created_at = get_date()
 
         title = request.form['title']
         description = request.form['description']
@@ -548,6 +583,185 @@ def vacancie_list(cursor):
     vacancie_data = cursor.fetchall()
 
     return render_template('vacancie_list.html', vacancie_data=vacancie_data)
+
+
+@app.route('/<int:user_id>/<int:vacancie_id>/create_request', methods=['POST', 'GET'])
+@db_operation
+def create_request(cursor, user_id, vacancie_id):
+    query = ("SELECT id FROM job_seekers WHERE id_user = %s ")
+    cursor.execute(query, [user_id])
+    js_id = cursor.fetchone()
+
+    created_at = get_date()
+
+    request_data = {
+        'id_vacancy': vacancie_id,
+        'id_job_seeker': js_id.id,
+        'id_status': 1,
+        'date': created_at.date
+    }
+
+    query = (
+        "SELECT * "
+        "FROM vacancy "
+        "WHERE id = %s"
+    )
+    cursor.execute(query, [vacancie_id])
+    vacancie_data = cursor.fetchone()
+
+    try:
+        # query = (
+        #     f"""
+        #         SELECT id
+        #         FROM vacancy
+        #     """
+        # )
+        # cursor.execute(query)
+        # vacancie_id_list = cursor.fetchall()
+
+        query = (
+            f"""
+                SELECT 1 as flag
+                FROM requests
+                JOIN job_seekers
+                ON requests.id_job_seeker = job_seekers.id
+                WHERE job_seekers.id_user = %s 
+                    AND requests.id_vacancy = %s
+            """
+        )
+        cursor.execute(query, (user_id, vacancie_id))
+        request_status = cursor.fetchone()
+
+        if request_status:
+            flash(f'Нельзя создавать больше одной заявки на вакансию', 'danger')
+            return redirect(url_for('vacancie_list', vacancie_data=vacancie_data))
+        query = (
+            "INSERT INTO requests (id_vacancy, id_job_seeker, id_status, date) VALUES "
+            "(%(id_vacancy)s, %(id_job_seeker)s, %(id_status)s, %(date)s)"
+        )
+        cursor.execute(query, request_data)
+        print(cursor.statement)
+
+        flash('Заявка успешно создана', 'success')
+        return redirect(url_for('vacancie_list'))
+    except connector.errors.DatabaseError as error:
+        flash(f'Произошла ошибка при создании записи: {error}', 'danger')
+    return render_template('vacancie_list.html')
+
+
+@app.route('/<int:user_id>/<int:request_id>/delete_request', methods=['POST', 'GET', 'DELETE'])
+@login_required
+@db_operation
+def delete_request(cursor, user_id, request_id):
+    try:
+        query = ("DELETE FROM requests WHERE id = %s")
+        cursor.execute(query, (request_id,))
+        flash('Заявка успешно удалена', 'success')
+        return redirect(url_for('js_request_list', user_id=user_id))
+    except connector.errors.DatabaseError as error:
+        flash(f'Произошла ошибка при удалении записи: {error}', 'danger')
+
+
+@app.route('/<int:user_id>/js_request_list')
+@db_operation
+def js_request_list(cursor, user_id):
+    query = (
+        f"""
+            SELECT requests.*, vacancy.title, status.name, vacancy.id as id_vacancie
+            FROM requests
+            JOIN vacancy
+            ON requests.id_vacancy = vacancy.id
+            JOIN status
+            ON requests.id_status = status.id
+            WHERE id_job_seeker = (
+                SELECT job_seekers.id
+                FROM job_seekers
+                JOIN users
+                ON job_seekers.id_user = users.id
+                WHERE users.id = %s
+        )"""
+    )
+    cursor.execute(query, [user_id])
+    request_data = cursor.fetchall()
+
+    return render_template('js_request_list.html', request_data=request_data)
+
+
+@app.route('/<int:user_id>/employer_request_list')
+@db_operation
+def employer_request_list(cursor, user_id):
+    query = (
+        f"""
+            SELECT requests.*, status.name, resume.id as resume_id, js.id as js_id
+            FROM requests
+            JOIN status
+                ON requests.id_status = status.id
+            JOIN job_seekers
+                ON requests.id_job_seeker = job_seekers.id
+            JOIN resume
+                ON job_seekers.id = resume.id_job_seeker
+            JOIN vacancy
+                ON requests.id_vacancy = vacancy.id
+            JOIN employers
+                ON vacancy.id_employer = employers.id
+            JOIN users emp
+                ON employers.id_user = emp.id
+            JOIN users js
+                ON job_seekers.id_user = js.id
+            WHERE emp.id = %s
+        """
+    )
+    cursor.execute(query, [user_id])
+    request_data = cursor.fetchall()
+
+    return render_template('employer_request_list.html', request_data=request_data)
+
+
+@app.route('/<int:user_id>/<int:request_id>/edit_request_status', methods=['POST', 'GET'])
+@login_required
+@db_operation
+def edit_request_status(cursor, user_id, request_id):
+    if request.method == 'POST':
+        status = request.form['status']
+        if status == 'На рассмотрении':
+            id_status = 1
+        elif status == 'Отказано':
+            id_status = 2
+        else:
+            id_status = 3
+        try:
+            query = (f"UPDATE requests SET id_status = %s "
+                     "WHERE id = %s")
+            cursor.execute(query, (id_status, request_id))
+            print(cursor.statement)
+            flash('Статус заявки успешно изменен', 'success')
+            return redirect(url_for('employer_request_list', user_id=user_id))
+        except connector.errors.DatabaseError as error:
+            flash(f'Произошла ошибка при изменении записи: {error}', 'danger')
+    return render_template('edit_request_status.html')
+
+
+@app.route('/<int:user_id>/resume/resume_export.csv')
+@db_operation
+@login_required
+def resume_export(cursor, user_id):
+    query = (f"""
+        SELECT resume.*, users.last_name, users.first_name, users.second_name
+        FROM resume
+        JOIN job_seekers
+            ON resume.id_job_seeker = job_seekers.id
+        JOIN users
+            ON job_seekers.id_user = users.id
+        WHERE users.id = %s
+    """)
+    cursor.execute(query, [user_id])
+    resume = cursor.fetchone()
+
+    result = 'Last name, First name, Second name, Description, Skills, Education, Work Experience\n'
+    result += f'{resume.last_name},{resume.first_name},{resume.second_name},{resume.description},{resume.skills}, {resume.education}, {resume.experience}\n'
+
+    return send_file(BytesIO(result.encode()), as_attachment=True, mimetype='text/csv',
+                     download_name='resume.csv')
 
 
 if __name__ == '__main__':

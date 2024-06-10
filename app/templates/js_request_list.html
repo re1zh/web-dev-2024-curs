@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>Отклики</h2>
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th scope="col">Статус</th>
+                    <th scope="col">Вакансия</th>
+                    <th scope="col">Дата</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in request_data %}
+                <tr>
+                    <td>
+                        <label class="form-check-label"> {{ request.name }} </label>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('vacancie_view', user_id=current_user.id, vacancie_id=request.id_vacancie) }}" class="text-decoration-none"> {{ request.title }} </a>
+                        <br>
+                        <a href="{{ url_for('delete_request', user_id=current_user.id, request_id=request.id) }}" class="text-decoration-none text-danger">Удалить</a>
+                    </td>
+                    <td> {{ request.date }} </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

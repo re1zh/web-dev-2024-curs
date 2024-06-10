@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Изменение статуса заявки соискателя</h1>
+    <form method="post">
+        <div class="mb-3 w-25">
+            <select class="form-select" id="status" name="status">
+                <option value="1">На рассмотрении</option>
+                <option value="2">Отказано</option>
+                <option value="3">Приглашен на интервью</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-success">Изменить статус заявки</button>
+    </form>
+{% endblock %}

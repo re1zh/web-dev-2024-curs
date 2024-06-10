@@ -2,27 +2,27 @@
 
 {% block content %}
     <div class="container">
-        {% for resume in resume_data %}
-            <div class="card p-3 mx-2 my-3">
-                <h4 class="card-title mb-4">{{ user_data.last_name }} {{ user_data.first_name }} {{ user_data.second_name }}</h4>
-                <h6>Опыт работы</h6>
-                <p>{{ resume.experience }}</p>
+        <div class="card p-3 mx-2 my-3">
+            <h4 class="card-title mb-4">{{ user_data.last_name }} {{ user_data.first_name }} {{ user_data.second_name }}</h4>
+            <h6>Опыт работы</h6>
+            <p>{{ resume_data.experience }}</p>
 
-                <h6>Обо мне</h6>
-                <p> {{ resume.description }} </p>
+            <h6>Обо мне</h6>
+            <p> {{ resume_data.description }} </p>
 
-                <h6>Навыки</h6>
-                <p> {{ resume.skills }} </p>
+            <h6>Навыки</h6>
+            <p> {{ resume_data.skills }} </p>
 
-                <h6>Образование</h6>
-                <p> {{ resume.education }} </p>
+            <h6>Образование</h6>
+            <p> {{ resume_data.education }} </p>
 
-                <div class="d-flex" role="search">
-                    <button class="btn btn-success" type="submit"><a class="nav-link active" href="{{ url_for('edit_resume', user_id=current_user.id, resume_id=resume.id) }}">Редактировать</a></button>
-                    <button class="btn btn-danger mx-2" type="submit"><a class="nav-link active" href="{{ url_for('delete_resume', user_id=current_user.id, resume_id=resume.id) }}">Удалить</a></button>
-                    <button class="btn btn-info text-white mx-2" type="submit"><a class="nav-link active" href="#">Экспортировать в файл</a></button>
-                </div>
+            {% if current_user.can('update_resume') %}
+            <div class="d-flex" role="search">
+                <button class="btn btn-success" type="submit"><a class="nav-link active" href="{{ url_for('edit_resume', user_id=current_user.id, resume_id=resume_data.id) }}">Редактировать</a></button>
+                <button class="btn btn-danger mx-2" type="submit"><a class="nav-link active" href="{{ url_for('delete_resume', user_id=current_user.id, resume_id=resume_data.id) }}">Удалить</a></button>
+                <button class="btn btn-info text-white mx-1" type="submit"><a class="nav-link active" href="{{ url_for('resume_export', user_id=current_user.id) }}">Экспортировать в файл</a></button>
             </div>
-        {% endfor %}
+            {% endif %}
+        </div>
     </div>
 {% endblock %}
