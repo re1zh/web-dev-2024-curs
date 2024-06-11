@@ -88,7 +88,7 @@ def index():
 
 @app.route('/about')
 def about():
-    return render_template('about.html', title='О проекте')
+    return render_template('about.html')
 
 
 @login_manager.user_loader
@@ -119,10 +119,12 @@ def auth(cursor):
         flash('Неправильный логин или пароль', 'danger')
     return render_template('auth.html')
 
+
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
 
 @app.route('/create_profile', methods=['POST', 'GET'])
 @db_operation
@@ -154,36 +156,49 @@ def create_profile(cursor):
 
         try:
             query = (
-                "INSERT INTO users (login, first_name, second_name, last_name, password, id_role) VALUES "
-                "(%(login)s, %(name)s, %(secondname)s, %(lastname)s, SHA2(%(password)s, 256), %(id_role)s)"
+                f"""
+                    SELECT 1 as login_check
+                    FROM users
+                    WHERE login = %(login)s
+                """
             )
             cursor.execute(query, user_data)
-            print(cursor.statement)
-            flash('Учетная запись успешно создана', 'success')
+            login_check = cursor.fetchone()
 
-            if id_role == 3:
-                try:
-                    query = "SELECT id FROM users WHERE login = %s and password = SHA2(%s, 256)"
-                    cursor.execute(query, (login, password))
-                    js_id = cursor.fetchone()
-                    print(cursor.statement)
-                    print(js_id.id)
-
-                    query = (
-                        "INSERT INTO job_seekers (id_user) VALUES "
-                        "(%s)"
-                    )
-                    cursor.execute(query, [js_id.id])
-                    print(cursor.statement)
-                    flash('Запись добавлена в "Соискатели"', 'success')
-                except connector.errors.DatabaseError as error:
-                    flash(f'Произошла ошибка при создании записи: {error}','danger')
+            if login_check:
+                flash(f'Данный пользователь уже зарегистрирован в системе', 'danger')
+                return redirect(url_for('create_profile'))
             else:
-                flash(f'Чтобы полностью стать "Работодателем" нужно дополнить данные в профиле', 'warning')
-            return redirect(url_for('auth'))
+                query = (
+                        "INSERT INTO users (login, first_name, second_name, last_name, password, id_role) VALUES "
+                        "(%(login)s, %(name)s, %(secondname)s, %(lastname)s, SHA2(%(password)s, 256), %(id_role)s)"
+                    )
+                cursor.execute(query, user_data)
+                print(cursor.statement)
+                flash('Учетная запись успешно создана', 'success')
+
+                if id_role == 3:
+                    try:
+                        query = "SELECT id FROM users WHERE login = %s and password = SHA2(%s, 256)"
+                        cursor.execute(query, (login, password))
+                        js_id = cursor.fetchone()
+                        print(cursor.statement)
+                        print(js_id.id)
+
+                        query = (
+                            "INSERT INTO job_seekers (id_user) VALUES "
+                            "(%s)"
+                        )
+                        cursor.execute(query, [js_id.id])
+                        print(cursor.statement)
+                        flash('Запись добавлена в "Соискатели"', 'success')
+                    except connector.errors.DatabaseError as error:
+                        flash(f'Произошла ошибка при создании записи: {error}','danger')
+                else:
+                    flash(f'Чтобы полностью стать "Работодателем" нужно дополнить данные в профиле', 'warning')
+                return redirect(url_for('auth'))
         except connector.errors.DatabaseError as error:
             flash(f'Произошла ошибка при создании записи: {error}', 'danger')
-
     return render_template('create_profile.html')
 
 
