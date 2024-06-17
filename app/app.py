@@ -61,6 +61,23 @@ def db_operation(func):
     return wrapper
 
 
+def check_for_privelege(action):
+    def decorator(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            user = None
+            if 'user_id' in kwargs.keys():
+                with db_connector.connect().cursor(named_tuple=True) as cursor:
+                    cursor.execute("SELECT * FROM user WHERE id = %s;", (kwargs.get('user_id'),))
+                    user = cursor.fetchone()
+            if not (current_user.is_authenticated and current_user.can(action, user)):
+                flash('Недостаточно прав для доступа к этой странице', 'warning')
+                return redirect(url_for('index'))
+            return function(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
 @db_operation
 def get_date(cursor):
     query = (
@@ -319,6 +336,7 @@ def edit_profile(cursor, user_id):
 # Создание резюме
 @app.route('/<int:user_id>/create_resume', methods=['POST', 'GET'])
 @db_operation
+@check_for_privelege('create_resume')
 def create_resume(cursor, user_id):
     if request.method == 'POST':
         query = ("SELECT id FROM job_seekers WHERE id_user = %s")
@@ -376,6 +394,7 @@ def create_resume(cursor, user_id):
 # Просмотр резюме
 @app.route('/<int:user_id>/resume')
 @db_operation
+@check_for_privelege('update_resume')
 def resume(cursor, user_id):
     query = (f"""
         SELECT resume.*, users.last_name, users.second_name, users.first_name
@@ -401,6 +420,7 @@ def resume(cursor, user_id):
 @app.route('/<int:user_id>/<int:resume_id>/edit_resume', methods=['POST', 'GET'])
 @login_required
 @db_operation
+@check_for_privelege('update_resume')
 def edit_resume(cursor, user_id, resume_id):
     query = (f"""
         SELECT resume.*, users.last_name, users.second_name, users.first_name
@@ -437,6 +457,7 @@ def edit_resume(cursor, user_id, resume_id):
 @app.route('/<int:user_id>/<int:resume_id>/delete_resume', methods=['POST', 'GET', 'DELETE'])
 @login_required
 @db_operation
+@check_for_privelege('delete_resume')
 def delete_resume(cursor, user_id, resume_id):
     try:
         query = ("DELETE FROM resume WHERE id = %s")
@@ -450,6 +471,7 @@ def delete_resume(cursor, user_id, resume_id):
 # Создание вакансии
 @app.route('/<int:user_id>/create_vacancie', methods=['POST', 'GET'])
 @db_operation
+@check_for_privelege('create_vacancie')
 def create_vacancie(cursor, user_id):
     if request.method == 'POST':
         query = ("SELECT id FROM employers WHERE id_user = %s ")
@@ -488,6 +510,7 @@ def create_vacancie(cursor, user_id):
 # Список вакансий для работодателя
 @app.route('/<int:user_id>/employer_vacancie_list')
 @db_operation
+@check_for_privelege('update_vacancie')
 def employer_vacancie_list(cursor, user_id):
     query = (
         "SELECT location FROM employers WHERE id_user = %s "
@@ -533,6 +556,7 @@ def vacancie_view(cursor, user_id, vacancie_id):
 @app.route('/<int:user_id>/<int:vacancie_id>/edit_vacancie', methods=['POST', 'GET'])
 @login_required
 @db_operation
+@check_for_privelege('update_vacancie')
 def edit_vacancie(cursor, user_id, vacancie_id):
     query = (
         "SELECT vacancy.* "
@@ -576,6 +600,7 @@ def edit_vacancie(cursor, user_id, vacancie_id):
 @app.route('/<int:user_id>/<int:vacancie_id>/delete_vacancie', methods=['POST', 'GET', 'DELETE'])
 @login_required
 @db_operation
+@check_for_privelege('delete_vacancie')
 def delete_vacancie(cursor, user_id, vacancie_id):
     try:
         query = ("DELETE FROM vacancy WHERE id = %s")
@@ -605,6 +630,7 @@ def vacancie_list(cursor):
 # Создание заявки (отклик на вакансию)
 @app.route('/<int:user_id>/<int:vacancie_id>/create_request', methods=['POST', 'GET'])
 @db_operation
+@check_for_privelege('create_request')
 def create_request(cursor, user_id, vacancie_id):
     query = ("SELECT id FROM job_seekers WHERE id_user = %s ")
     cursor.execute(query, [user_id])
@@ -678,6 +704,7 @@ def create_request(cursor, user_id, vacancie_id):
 @app.route('/<int:user_id>/<int:request_id>/delete_request', methods=['POST', 'GET', 'DELETE'])
 @login_required
 @db_operation
+@check_for_privelege('delete_request')
 def delete_request(cursor, user_id, request_id):
     try:
         query = ("DELETE FROM requests WHERE id = %s")
@@ -749,6 +776,7 @@ def employer_request_list(cursor, user_id):
 @app.route('/<int:user_id>/<int:request_id>/edit_request_status', methods=['POST', 'GET'])
 @login_required
 @db_operation
+@check_for_privelege('update_request')
 def edit_request_status(cursor, user_id, request_id):
     if request.method == 'POST':
         status = request.form['status']
