@@ -47,16 +47,16 @@ def db_operation(func):
         connection = db_connector.connect()
         try:
             start_time = datetime.datetime.now()
-            with connection.cursor(named_tuple=True, buffered=True) as cursor:
-                result = func(cursor, *args, **kwargs)
-                connection.commit()
+            cursor = connection.cursor(buffered=True, named_tuple=True)
+            result = func(cursor, *args, **kwargs)
+            connection.commit()
         except Exception as e:
             connection.rollback()
             raise e
         finally:
             end_time = datetime.datetime.now()
             print(f"Duration {func}: {end_time - start_time}")
-            # connection.close()
+            #connection.close()
         return result
     return wrapper
 
@@ -92,14 +92,16 @@ def about():
 
 
 @login_manager.user_loader
-def load_user(user_id):
-    with db_connector.connect().cursor(named_tuple=True) as cursor:
-        cursor.execute("SELECT id, login, id_role FROM users WHERE id = %s;", (user_id,))
-        user = cursor.fetchone()
+@db_operation
+def load_user(cursor, user_id):
+    cursor.execute("SELECT id, login, id_role FROM users WHERE id = %s;", (user_id,))
+    user = cursor.fetchone()
     if user is not None:
         return User(user.id, user.login, user.id_role)
     return None
 
+
+# Авторизация
 @app.route('/auth', methods=['POST', 'GET'])
 @db_operation
 def auth(cursor):
@@ -120,12 +122,14 @@ def auth(cursor):
     return render_template('auth.html')
 
 
+# Выход из профиля
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('index'))
 
 
+# Создание профиля
 @app.route('/create_profile', methods=['POST', 'GET'])
 @db_operation
 def create_profile(cursor):
@@ -202,6 +206,7 @@ def create_profile(cursor):
     return render_template('create_profile.html')
 
 
+# Просмотр профиля
 @app.route('/<int:user_id>/profile')
 def profile(user_id):
     user_data = {}
@@ -230,6 +235,7 @@ def profile(user_id):
         )
 
 
+# Изменение профиля
 @app.route('/<int:user_id>/edit_profile', methods=['POST', 'GET'])
 @login_required
 @db_operation
@@ -310,6 +316,7 @@ def edit_profile(cursor, user_id):
     return render_template('edit_profile.html', user_data=user_data, employer_data=employer_data)
 
 
+# Создание резюме
 @app.route('/<int:user_id>/create_resume', methods=['POST', 'GET'])
 @db_operation
 def create_resume(cursor, user_id):
@@ -366,6 +373,7 @@ def create_resume(cursor, user_id):
     return render_template('create_resume.html')
 
 
+# Просмотр резюме
 @app.route('/<int:user_id>/resume')
 @db_operation
 def resume(cursor, user_id):
@@ -389,6 +397,7 @@ def resume(cursor, user_id):
     return render_template('resume.html',resume_data=resume_data)
 
 
+# Изменение резюме
 @app.route('/<int:user_id>/<int:resume_id>/edit_resume', methods=['POST', 'GET'])
 @login_required
 @db_operation
@@ -404,10 +413,6 @@ def edit_resume(cursor, user_id, resume_id):
     """)
     cursor.execute(query, (user_id, resume_id))
     resume_data = cursor.fetchone()
-    #
-    # if resume_data is None:
-    #     flash('Резюме с такими данными нет в базе данных', 'danger')
-    #     return redirect(url_for('profile', user_id=user_id))
 
     if request.method == 'POST':
         fields_user = ['experience', 'description', 'skills', 'education']
@@ -428,6 +433,7 @@ def edit_resume(cursor, user_id, resume_id):
     return render_template('edit_resume.html', resume_data=resume_data)
 
 
+# Удаление резюме
 @app.route('/<int:user_id>/<int:resume_id>/delete_resume', methods=['POST', 'GET', 'DELETE'])
 @login_required
 @db_operation
@@ -441,6 +447,7 @@ def delete_resume(cursor, user_id, resume_id):
         flash(f'Произошла ошибка при удалении записи: {error}', 'danger')
 
 
+# Создание вакансии
 @app.route('/<int:user_id>/create_vacancie', methods=['POST', 'GET'])
 @db_operation
 def create_vacancie(cursor, user_id):
@@ -478,6 +485,7 @@ def create_vacancie(cursor, user_id):
     return render_template('create_vacancie.html')
 
 
+# Список вакансий для работодателя
 @app.route('/<int:user_id>/employer_vacancie_list')
 @db_operation
 def employer_vacancie_list(cursor, user_id):
@@ -504,6 +512,7 @@ def employer_vacancie_list(cursor, user_id):
     return render_template('employer_vacancie_list.html', vacancie_data=vacancie_data, location_data=location_data)
 
 
+# Просмотр вакансии
 @app.route('/<int:user_id>/<int:vacancie_id>/vacancie_view')
 @db_operation
 def vacancie_view(cursor, user_id, vacancie_id):
@@ -520,6 +529,7 @@ def vacancie_view(cursor, user_id, vacancie_id):
     return render_template('vacancie_view.html', vacancie_data=vacancie_data)
 
 
+# Изменение вакансии
 @app.route('/<int:user_id>/<int:vacancie_id>/edit_vacancie', methods=['POST', 'GET'])
 @login_required
 @db_operation
@@ -562,6 +572,7 @@ def edit_vacancie(cursor, user_id, vacancie_id):
     return render_template('edit_vacancie.html', vacancie_data=vacancie_data)
 
 
+# Удаление вакансии
 @app.route('/<int:user_id>/<int:vacancie_id>/delete_vacancie', methods=['POST', 'GET', 'DELETE'])
 @login_required
 @db_operation
@@ -575,6 +586,7 @@ def delete_vacancie(cursor, user_id, vacancie_id):
         flash(f'Произошла ошибка при удалении записи: {error}', 'danger')
 
 
+# Список всех вакансий
 @app.route('/vacancie_list')
 @db_operation
 def vacancie_list(cursor):
@@ -590,6 +602,7 @@ def vacancie_list(cursor):
     return render_template('vacancie_list.html', vacancie_data=vacancie_data)
 
 
+# Создание заявки (отклик на вакансию)
 @app.route('/<int:user_id>/<int:vacancie_id>/create_request', methods=['POST', 'GET'])
 @db_operation
 def create_request(cursor, user_id, vacancie_id):
@@ -661,6 +674,7 @@ def create_request(cursor, user_id, vacancie_id):
     return render_template('vacancie_list.html')
 
 
+# Удаление заявки
 @app.route('/<int:user_id>/<int:request_id>/delete_request', methods=['POST', 'GET', 'DELETE'])
 @login_required
 @db_operation
@@ -674,6 +688,7 @@ def delete_request(cursor, user_id, request_id):
         flash(f'Произошла ошибка при удалении записи: {error}', 'danger')
 
 
+# Список откликов для соискателя
 @app.route('/<int:user_id>/js_request_list')
 @db_operation
 def js_request_list(cursor, user_id):
@@ -699,6 +714,7 @@ def js_request_list(cursor, user_id):
     return render_template('js_request_list.html', request_data=request_data)
 
 
+# Список откликов на вакансии работодателя
 @app.route('/<int:user_id>/employer_request_list')
 @db_operation
 def employer_request_list(cursor, user_id):
@@ -729,6 +745,7 @@ def employer_request_list(cursor, user_id):
     return render_template('employer_request_list.html', request_data=request_data)
 
 
+# Изменение статуса заявки
 @app.route('/<int:user_id>/<int:request_id>/edit_request_status', methods=['POST', 'GET'])
 @login_required
 @db_operation
@@ -753,6 +770,7 @@ def edit_request_status(cursor, user_id, request_id):
     return render_template('edit_request_status.html')
 
 
+# Экспорт резюме в файл
 @app.route('/<int:user_id>/resume/resume_export.csv')
 @db_operation
 @login_required
@@ -777,6 +795,7 @@ def resume_export(cursor, user_id):
                      download_name='resume.csv')
 
 
+# Статистика для администратора
 @app.route('/statistics')
 @db_operation
 def statistics(cursor):
@@ -822,7 +841,6 @@ def statistics(cursor):
         'js': js.qty,
         'emps': emps.qty
     }
-
     return render_template('statistics.html', stats=stats)
 
 

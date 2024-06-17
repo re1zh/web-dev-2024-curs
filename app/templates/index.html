@@ -5,7 +5,7 @@
         <h4>Findaworkk - найди работу!</h4>
         <p>Нанять экспертов или быть нанятым</p>
         <a  {% if current_user.is_authenticated %}
-                href="#"
+                href="{{url_for('index')}}"
             {% else %}
                 href="{{url_for('auth')}}"
             {% endif %}
