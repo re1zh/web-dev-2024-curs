@@ -510,7 +510,6 @@ def create_vacancie(cursor, user_id):
 # Список вакансий для работодателя
 @app.route('/<int:user_id>/employer_vacancie_list')
 @db_operation
-@check_for_privelege('update_vacancie')
 def employer_vacancie_list(cursor, user_id):
     query = (
         "SELECT location FROM employers WHERE id_user = %s "
