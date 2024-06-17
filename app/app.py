@@ -208,31 +208,31 @@ def create_profile(cursor):
 
 # Просмотр профиля
 @app.route('/<int:user_id>/profile')
-def profile(user_id):
+@db_operation
+def profile(cursor, user_id):
     user_data = {}
     employer_data = {}
     job_seeker_data = {}
-    with db_connector.connect().cursor(named_tuple=True, buffered=True) as cursor:
-        query = ("SELECT * FROM users WHERE id = %s")
-        cursor.execute(query, [user_id])
-        user_data = cursor.fetchone()
-        if user_data is None:
-            flash('Пользователя нет в базе данных', 'danger')
-            return redirect(url_for('profile', user_id=user_id))
+    query = ("SELECT * FROM users WHERE id = %s")
+    cursor.execute(query, [user_id])
+    user_data = cursor.fetchone()
+    if user_data is None:
+        flash('Пользователя нет в базе данных', 'danger')
+        return redirect(url_for('profile', user_id=user_id))
 
-        query = "SELECT name FROM roles WHERE id = %s"
-        cursor.execute(query, [user_data.id_role])
-        user_role = cursor.fetchone()
+    query = "SELECT name FROM roles WHERE id = %s"
+    cursor.execute(query, [user_data.id_role])
+    user_role = cursor.fetchone()
 
-        query = "SELECT company_name, description, location FROM employers WHERE id_user = %s"
-        cursor.execute(query, [user_id])
-        employer_data = cursor.fetchone()
+    query = "SELECT company_name, description, location FROM employers WHERE id_user = %s"
+    cursor.execute(query, [user_id])
+    employer_data = cursor.fetchone()
 
-        return render_template(
-            'profile.html',
-            user_data=user_data, user_role=user_role.name,
-            employer_data=employer_data
-        )
+    return render_template(
+        'profile.html',
+        user_data=user_data, user_role=user_role.name,
+        employer_data=employer_data
+    )
 
 
 # Изменение профиля
