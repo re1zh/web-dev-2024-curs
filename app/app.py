@@ -68,7 +68,7 @@ def check_for_privelege(action):
             user = None
             if 'user_id' in kwargs.keys():
                 with db_connector.connect().cursor(named_tuple=True) as cursor:
-                    cursor.execute("SELECT * FROM user WHERE id = %s;", (kwargs.get('user_id'),))
+                    cursor.execute("SELECT * FROM users WHERE id = %s;", (kwargs.get('user_id'),))
                     user = cursor.fetchone()
             if not (current_user.is_authenticated and current_user.can(action, user)):
                 flash('Недостаточно прав для доступа к этой странице', 'warning')
